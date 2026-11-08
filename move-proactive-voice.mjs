@@ -1,0 +1,16 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+const path = 'C:/DSHwork/plugins-src/dsh-qq-group/lib/client.js';
+let s = readFileSync(path, 'utf8');
+const startMarker = "            h(Row, { label: '主动语音概率' },";
+const start = s.indexOf(startMarker);
+if (start < 0) throw new Error('voice marker not found');
+const end = s.indexOf("            h(Row, { label: '唱歌概率' },", start);
+if (end < 0) throw new Error('voice end not found');
+const block = s.slice(start, end);
+s = s.slice(0, start) + s.slice(end);
+const target = "            h(Row, { label: '冷场主动开口' },";
+const at = s.indexOf(target);
+if (at < 0) throw new Error('proactive target not found');
+s = s.slice(0, at) + block + s.slice(at);
+writeFileSync(path, s);
+console.log('moved', block.length);

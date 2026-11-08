@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>QQ 插件设置 · 预览</title>
+  <style>
+    :root {
+      --dsw-alias-bg-1: #12121a;
+      --dsw-alias-bg-2: #171722;
+      --dsw-alias-bg-3: #1e1e2b;
+      --dsw-alias-border-l1: #2a2a3a;
+      --dsw-alias-border-l2: #33334a;
+      --dsw-alias-label-primary: #e8e8f2;
+      --dsw-alias-label-secondary: #a8a8bd;
+      --dsw-alias-label-tertiary: #74748c;
+      --dsw-alias-brand-primary: #7c8cff;
+      --dsw-alias-brand-primary-hover: #94a2ff;
+    }
+    body {
+      margin: 0;
+      background: #0d0d14;
+      color: var(--dsw-alias-label-primary);
+      font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    #root { max-width: 980px; margin: 0 auto; padding: 24px; }
+    #err { color: #ff8a8a; white-space: pre-wrap; font-size: 12px; padding: 12px; font-family: Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="err"></pre>
+
+  <script>
+    window.__errs = [];
+    window.__log = function (m) {
+      window.__errs.push(String(m));
+      var el = document.getElementById('err');
+      if (el) el.textContent = window.__errs.join(String.fromCharCode(10));
+    };
+    window.addEventListener('error', function (e) {
+      window.__log('[error] ' + (e.message || '') + ' @ ' + (e.filename || '') + ':' + (e.lineno || ''));
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e.reason;
+      window.__log('[promise] ' + (r && r.message ? r.message : String(r)));
+    });
+  </script>
+
+  <script src="./node_modules/react/umd/react.production.min.js"></script>
+  <script src="./node_modules/react-dom/umd/react-dom.production.min.js"></script>
+
+  <script>
+    // DSH 模块加载器垫片
+    var modules = {};
+    window.__ModuleLoader__ = {
+      load: function (spec) {
+        modules[spec.id] = spec.factory(function (name) {
+          if (name === 'react') return window.React;
+          if (name === 'react-dom') return window.ReactDOM;
+          throw new Error('未知模块 ' + name);
+        });
+      },
+    };
+    window.__log('loader ready, React=' + (window.React ? 'ok' : 'MISSING'));
+
+    // 假设置数据
+    var mockSettings = {
+      persona: '', personas: [
+        { id: 'concise-whale', name: '简洁鲸鱼', text: '她是助手……' },
+        { id: 'classic-whale', name: '经典鲸鱼', text: '她是一条鲸鱼……' }
+      ],
+      groupPersonaIds: {}, activePersonaId: 'concise-whale',
+      mode: 'passive',
+      model: { provider: 'workbuddy', model: 'deepseek-v4.1-flash' },
+      fallbackModel: {}, reasoningEffort: 'low', contextWindows: {},
+      stickerSave: true, stickerFilter: true, stickerSaveRepo: '', stickerAnalyzeOnSave: true,
+      stickerMax: 500, stickerMaxMB: 5,
+      autoStart: false, autoLaunchNapcat: true,
+      napcatLauncher: 'C:\\DSHwork\\start-napcat.bat',
+      whitelist: [], whitelistFloor: 95, blacklist: [], blacklistCeil: 5,
+      nightDnd: { enabled: true, startHour: 23, endHour: 8 },
+      nightPenalty: 20,
+      scoreWeights: {}, profileRules: {},
+      ownerFamiliarity: 100, ownerAffinity: 100,
+      hostilityJudge: true, cookieWatch: true,
+      customVoices: [], usageRates: {}, balance: { yuan: 8.09, at: 1777000000000 },
+      qzone: { enabled: true, mode: 'auto', ugcRight: 1, dailyLimit: 1, minIntervalMinutes: 120,
+               autoChance: 0.2, imageMode: 'library', mentionMode: 'auto', visibility: 1 },
+      permanent: {}, computerUse: { enabled: true },
+      worldBridge: { enabled: true, worldId: 'default', settleMs: 1200, autoRecall: true },
+      groupDigest: { memoryLines: 20, fileLines: 60 },
+      sharedTranscript: {}
+    };
+
+    var mockGroups = [
+      { groupId: '100000001', name: '助手-项目' },
+      { groupId: '1176961334', name: '闲聊群' }
+    ];
+
+    var mockRoutes = {
+      '/dsh-qq-group/status': { ok: true, running: true, muted: false, selfQq: '3706937948507088',
+        link: { status: 'online' }, llm: 'workbuddy', groups: mockGroups, configPath: '' },
+      '/dsh-qq-group/settings': { ok: true, settings: mockSettings, groups: mockGroups },
+      '/dsh-qq-group/personas': { ok: true, personas: mockSettings.personas }
+    };
+
+    window.fetch = function (url) {
+      var u = String(url).replace(/^https?:\/\/[^/]+/, '');
+      var keys = Object.keys(mockRoutes);
+      for (var i = 0; i < keys.length; i++) {
+        if (u.indexOf(keys[i]) === 0) {
+          var body = mockRoutes[keys[i]];
+          return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve(body); }, text: function () { return Promise.resolve(JSON.stringify(body)); } });
+        }
+      }
+      return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve({ ok: true }); }, text: function () { return Promise.resolve('{"ok":true}'); } });
+    };
+  </script>
+
+  <script src="./lib/client.js"></script>
+
+  <script>
+    (function () {
+      var plugin = modules['dsh-qq-group'];
+      window.__log('plugin=' + (plugin ? 'ok' : 'MISSING'));
+      if (!plugin) return;
+
+      var captured = null;
+      var fakeCtx = {
+        slots: {
+          inject: function (slot, render) {
+            var it = render();
+            var step;
+            while (!(step = it.next()).done) {
+              if (step.value && step.value.__component) captured = step.value.__component;
+            }
+          },
+          register: function (spec, Component) {
+            return { __component: Component, spec: spec };
+          }
+        },
+        on: function () {}
+      };
+
+      try {
+        plugin.apply(fakeCtx, {});
+        window.__log('apply ok');
+      } catch (e) {
+        window.__log('apply FAIL: ' + e.message);
+      }
+      window.__log('captured=' + (captured ? 'yes' : 'NO'));
+
+      if (!captured) {
+        document.getElementById('root').textContent = '没抓到组件';
+        return;
+      }
+      try {
+        var root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(captured));
+        window.__log('rendered');
+      } catch (e) {
+        window.__log('render FAIL: ' + e.message);
+      }
+    })();
+  </script>
+</body>
+</html>

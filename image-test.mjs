@@ -1,0 +1,15 @@
+import { QqBridge } from './src/qq/bridge.ts';
+import { defaultConfig, defaultGroupPolicy } from './src/qq/config.ts';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+const root = mkdtempSync(join(tmpdir(), 'qq-img-test-'));
+const bridge = new QqBridge({ config: defaultConfig(), userRoot: root, persona: () => '', log: () => {}, timeLimit: 0 });
+const policy = defaultGroupPolicy();
+policy.imageView = 'custom';
+policy.imageViewModes = [];
+const base = { groupId: 'g', userId: 'u', name: 'u', role: 'member', atSelf: false, callSelf: false, atAll: false, at: Date.now(), messageId: '1', hasImage: true, images: [{ type: 'image', data: {} }], hasVoice: false, text: '看看这个图片' };
+console.log('explicit view', bridge.shouldViewImages('g', policy, base, 'chat'));
+console.log('not asked', bridge.shouldViewImages('g', policy, { ...base, text: '今天天气不错' }, 'chat'));
+bridge.dispose?.();
+rmSync(root, { recursive: true, force: true });

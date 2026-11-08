@@ -1,0 +1,14 @@
+import { emptyProfiles, touchUser, noteReply, noteContinuation, noteQuote, noteHostility, DEFAULT_PROFILE_RULES } from './src/qq/profiles.ts';
+const rules = { ...DEFAULT_PROFILE_RULES, firstMessageFam: 2, repeatMessageFam: 1, messageFamDailyCap: 3, mentionFam: 2, mentionFamDailyCap: 2, replyFam: 0, replyFamDailyCap: 0, replyAffinity: 1, replyAffinityDailyCap: 2, continuationAffinity: 3, continuationAffinityDailyCap: 3, quoteAffinity: 1, quoteAffinityDailyCap: 1 };
+const p = emptyProfiles();
+touchUser(p, 'g', 'u', 'n', { rules });
+for (let i = 0; i < 4; i += 1) touchUser(p, 'g', 'u', 'n', { rules, mention: i === 0 });
+const profile = p.groups.g.users.u;
+console.log('fam after messages/mention', profile.familiarity, 'stats', profile.dayStats);
+noteReply(p, 'g', 'u', rules);
+noteReply(p, 'g', 'u', rules);
+noteContinuation(p, 'g', 'u', rules);
+noteContinuation(p, 'g', 'u', rules);
+noteQuote(p, 'g', 'u', rules);
+noteHostility(p, 'g', 'u', 2, rules);
+console.log('affinity', profile.affinity, 'stats', profile.dayStats);
